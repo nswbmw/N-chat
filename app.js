@@ -28,24 +28,24 @@ if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
 
-var users = [];//存储在线用户列表
+var users = {};//存储在线用户列表的对象
+
 app.get('/', function (req, res) {
   if (req.cookies.user == null) {
-    //注意要有 return
-    return res.redirect('/signin');
+    res.redirect('/signin');
+  } else {
+    res.sendfile('views/index.html');
   }
-  res.sendfile('views/index.html');
 });
 app.get('/signin', function (req, res) {
   res.sendfile('views/signin.html');
 });
 app.post('/signin', function (req, res) {
-  //检测该用户名是否已经存在于 users 数组中
-  if (users.indexOf(req.body.name) != -1) {
+  if (users[req.body.name]) {
     //存在，则不允许登陆
     res.redirect('/signin');
   } else {
-	  //不存在，把用户名存入 cookie 并跳转到主页
+    //不存在，把用户名存入 cookie 并跳转到主页
     res.cookie("user", req.body.name, {maxAge: 1000*60*60*24*30});
     res.redirect('/');
   }
@@ -59,9 +59,9 @@ io.sockets.on('connection', function (socket) {
   socket.on('online', function (data) {
     //将上线的用户名存储为 socket 对象的属性，以区分每个 socket 对象，方便后面使用
     socket.name = data.user;
-    //数组中不存在该用户名则插入该用户名
-    if (users.indexOf(data.user) == -1) {
-      users.unshift(data.user);
+    //users 对象中不存在该用户名则插入该用户名
+    if (!users[data.user]) {
+      users[data.user] = data.user;
     }
     //向所有用户广播该用户上线信息
     io.sockets.emit('online', {users: users, user: data.user});
@@ -88,10 +88,10 @@ io.sockets.on('connection', function (socket) {
 
   //有人下线
   socket.on('disconnect', function() {
-    //若 users 数组中保存了该用户名
-    if (users.indexOf(socket.name) != -1) {
-      //从 users 数组中删除该用户名
-      users.splice(users.indexOf(socket.name), 1);
+    //若 users 对象中保存了该用户名
+    if (users[socket.name]) {
+      //从 users 对象中删除该用户名
+      delete users[socket.name];
       //向其他所有用户广播该用户下线信息
       socket.broadcast.emit('offline', {users: users, user: socket.name});
     }
