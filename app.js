@@ -75,15 +75,30 @@ io.sockets.on('connection', function (socket) {
     } else {
       //向特定用户发送该用户发话信息
       //clients 为存储所有连接对象的数组
-      var clients = io.sockets.clients();
+	  
+	  var clients = io.sockets.clients();
       //遍历找到该用户
-      clients.forEach(function (client) {
+	  clients.forEach(function (client) {
         if (client.name == data.to) {
           //触发该用户客户端的 say 事件
           client.emit('say', data);
         }
       });
+	  
+	  
+	  
+	  /**
+	  //当socket.io版本高于0.9时可以使用以下方法获取clients
+	  
+	  var clients = io.sockets.sockets.map(function(e) {return e.name});
+	    
+	  for (var i = 0; i < clients.length; i++) {
+		if(clients[i] == data.to) io.sockets.emit('say', data);
+	  }
+	  **/
     }
+	
+	
   });
 
   //有人下线
